@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 # downloaded. Editing them by hand also works for manual use.
 # ======================================================================
 $ApiKey = "{{API_KEY}}"
-$ApiBaseUrl = "{{API_BASE_URL}}"
+$ApiBaseUrl = "https://api.claudehub.fun"
 $ProviderName = "{{PROVIDER_NAME}}"
 # ======================================================================
 
@@ -28,10 +28,6 @@ function Assert-Config {
     if ([string]::IsNullOrWhiteSpace($ApiKey) -or $ApiKey -match '^\{\{.*\}\}$') {
         $script:ApiKey = Read-Host "Enter your API key"
         if ([string]::IsNullOrWhiteSpace($script:ApiKey)) { Write-Error "API key cannot be empty."; exit 1 }
-    }
-    if ([string]::IsNullOrWhiteSpace($ApiBaseUrl) -or $ApiBaseUrl -match '^\{\{.*\}\}$') {
-        $script:ApiBaseUrl = Read-Host "Enter the API base URL"
-        if ([string]::IsNullOrWhiteSpace($script:ApiBaseUrl)) { Write-Error "API base URL cannot be empty."; exit 1 }
     }
     if ([string]::IsNullOrWhiteSpace($ProviderName) -or $ProviderName -match '^\{\{.*\}\}$') {
         $script:ProviderName = "ClaudeHub"

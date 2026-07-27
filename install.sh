@@ -8,7 +8,7 @@ set -euo pipefail
 # downloaded. Editing them by hand also works for manual use.
 # ======================================================================
 API_KEY="{{API_KEY}}"
-API_BASE_URL="{{API_BASE_URL}}"
+API_BASE_URL="https://api.claudehub.fun"
 PROVIDER_NAME="{{PROVIDER_NAME}}"
 # ======================================================================
 
@@ -17,10 +17,6 @@ require_config() {
   if [[ -z "$API_KEY" || "$API_KEY" =~ ^\{\{.*\}\}$ ]]; then
     read -rp "Enter your API key: " API_KEY <"$tty"
     [[ -z "$API_KEY" ]] && { echo "Error: API key cannot be empty." >&2; exit 1; }
-  fi
-  if [[ -z "$API_BASE_URL" || "$API_BASE_URL" =~ ^\{\{.*\}\}$ ]]; then
-    read -rp "Enter the API base URL: " API_BASE_URL <"$tty"
-    [[ -z "$API_BASE_URL" ]] && { echo "Error: API base URL cannot be empty." >&2; exit 1; }
   fi
   if [[ -z "$PROVIDER_NAME" || "$PROVIDER_NAME" =~ ^\{\{.*\}\}$ ]]; then
     PROVIDER_NAME="ClaudeHub"

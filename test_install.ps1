@@ -32,19 +32,15 @@ $expected = Join-Path $env:APPDATA "Code\User\settings.json"
 Assert-Eq "appdata path" (Get-VSCodeUserSettingsPath) $expected
 
 Write-Host "=== Assert-Config ==="
-$script:ApiKey = "sk-live-123"; $script:ApiBaseUrl = "https://x.com"; $script:ProviderName = "P"
+$script:ApiKey = "sk-live-123"; $script:ProviderName = "P"
 Assert-Config
 Assert-Eq "valid config passes" $true $true
 
-$script:ApiKey = "{{API_KEY}}"; $script:ApiBaseUrl = "https://x.com"; $script:ProviderName = "P"
+$script:ApiKey = "{{API_KEY}}"; $script:ProviderName = "P"
 try { Assert-Config; Assert-Eq "template API_KEY fails" $false $true }
 catch { Assert-Eq "template API_KEY fails" $true $true }
 
-$script:ApiKey = "sk-live-123"; $script:ApiBaseUrl = "{{API_BASE_URL}}"; $script:ProviderName = "P"
-try { Assert-Config; Assert-Eq "template API_BASE_URL fails" $false $true }
-catch { Assert-Eq "template API_BASE_URL fails" $true $true }
-
-$script:ApiKey = "sk-live-123"; $script:ApiBaseUrl = "https://x.com"; $script:ProviderName = "{{PROVIDER_NAME}}"
+$script:ApiKey = "sk-live-123"; $script:ProviderName = "{{PROVIDER_NAME}}"
 Assert-Config
 Assert-Eq "template PROVIDER_NAME → ClaudeHub" $script:ProviderName "ClaudeHub"
 
