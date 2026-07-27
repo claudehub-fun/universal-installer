@@ -15,9 +15,12 @@ assert_eq() {
 
 # ── load pure functions without executing main ────────────────────────────────
 API_KEY="test-key"; API_BASE_URL="https://api.example.com"; PROVIDER_NAME="TestProvider"
-# Source all lines except the final 'main "$@"' call via process substitution.
-# shellcheck disable=SC1091
-source <(grep -v '^main "\$@"' "$(dirname "$0")/install.sh")
+_script="$(dirname "$0")/install.sh"
+_tmp_src="$(mktemp)"
+grep -v '^main "\$@"' "$_script" > "$_tmp_src"
+# shellcheck disable=SC1090
+source "$_tmp_src"
+rm -f "$_tmp_src"
 
 echo "=== slugify ==="
 assert_eq "lowercase"           "$(slugify 'Hello World')"  "helloworld"
