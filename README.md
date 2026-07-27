@@ -6,12 +6,12 @@ Installs and configures AI coding tools (Claude Code, Roo Code, Kilo Code, Cline
 
 **macOS / Linux**
 ```bash
-bash install.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/claudehub-fun/universal-installer/main/install.sh)
 ```
 
 **Windows**
 ```powershell
-powershell -ExecutionPolicy Bypass -File install.ps1
+irm https://raw.githubusercontent.com/claudehub-fun/universal-installer/main/install.ps1 | iex
 ```
 
 The script will ask which tool to install, then configure it to use your API key and endpoint automatically.
