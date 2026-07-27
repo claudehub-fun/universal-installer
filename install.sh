@@ -13,12 +13,13 @@ PROVIDER_NAME="{{PROVIDER_NAME}}"
 # ======================================================================
 
 require_config() {
+  local tty="${INSTALLER_TTY:-/dev/tty}"
   if [[ -z "$API_KEY" || "$API_KEY" =~ ^\{\{.*\}\}$ ]]; then
-    read -rp "Enter your API key: " API_KEY
+    read -rp "Enter your API key: " API_KEY <"$tty"
     [[ -z "$API_KEY" ]] && { echo "Error: API key cannot be empty." >&2; exit 1; }
   fi
   if [[ -z "$API_BASE_URL" || "$API_BASE_URL" =~ ^\{\{.*\}\}$ ]]; then
-    read -rp "Enter the API base URL: " API_BASE_URL
+    read -rp "Enter the API base URL: " API_BASE_URL <"$tty"
     [[ -z "$API_BASE_URL" ]] && { echo "Error: API base URL cannot be empty." >&2; exit 1; }
   fi
   if [[ -z "$PROVIDER_NAME" || "$PROVIDER_NAME" =~ ^\{\{.*\}\}$ ]]; then
@@ -332,6 +333,7 @@ setup_openrouter() {
 
 main() {
   require_config
+  local tty="${INSTALLER_TTY:-/dev/tty}"
   echo "Select what to install:"
   select choice in "Claude Code" "Roo Code" "Kilo Code" "Cline" "Codex CLI" "OpenRouter (env vars only)"; do
     case "$choice" in
@@ -343,7 +345,7 @@ main() {
       "OpenRouter (env vars only)") setup_openrouter; break ;;
       *) echo "Invalid choice, pick a number 1-6." ;;
     esac
-  done
+  done <"$tty"
 }
 
 main "$@"

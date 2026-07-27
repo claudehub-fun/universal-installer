@@ -51,13 +51,16 @@ API_KEY="sk-live-123"; API_BASE_URL="https://x.com"; PROVIDER_NAME="P"
 require_config
 assert_eq "valid config passes" "$?" "0"
 
+# Point tty at /dev/null so read gets empty input without needing a real terminal.
+export INSTALLER_TTY=/dev/null
 API_KEY="{{API_KEY}}"; API_BASE_URL="https://x.com"; PROVIDER_NAME="P"
 out=$(require_config 2>&1) && rc=0 || rc=$?
-assert_eq "template API_KEY fails" "$rc" "1"
+assert_eq "template API_KEY empty input fails" "$rc" "1"
 
 API_KEY="sk-live-123"; API_BASE_URL="{{API_BASE_URL}}"; PROVIDER_NAME="P"
 out=$(require_config 2>&1) && rc=0 || rc=$?
-assert_eq "template API_BASE_URL fails" "$rc" "1"
+assert_eq "template API_BASE_URL empty input fails" "$rc" "1"
+unset INSTALLER_TTY
 
 API_KEY="sk-live-123"; API_BASE_URL="https://x.com"; PROVIDER_NAME="{{PROVIDER_NAME}}"
 require_config
