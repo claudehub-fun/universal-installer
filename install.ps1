@@ -1,16 +1,11 @@
-﻿# Universal installer for custom API endpoints (Windows).
-# Run with: powershell -ExecutionPolicy Bypass -File install.ps1
+﻿# ClaudeHub installer — sets up AI coding tools with your ClaudeHub API key.
+# Run with: irm https://raw.githubusercontent.com/claudehub-fun/universal-installer/main/install.ps1 | iex
 $ErrorActionPreference = "Stop"
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# ======================================================================
-# TEMPLATE VARIABLES — the website replaces these before the script is
-# downloaded. Editing them by hand also works for manual use.
-# ======================================================================
-$ApiKey = "{{API_KEY}}"
+$ApiKey = ""
 $ApiBaseUrl = "https://api.claudehub.fun"
-$ProviderName = "{{PROVIDER_NAME}}"
-# ======================================================================
+$ProviderName = "ClaudeHub"
 
 # Writes text as UTF-8 *without* a BOM. PowerShell 5.1's built-in
 # "-Encoding utf8" always adds a BOM, which breaks tools whose JSON.parse
@@ -25,12 +20,9 @@ function Set-Utf8NoBom {
 }
 
 function Assert-Config {
-    if ([string]::IsNullOrWhiteSpace($ApiKey) -or $ApiKey -match '^\{\{.*\}\}$') {
-        $script:ApiKey = Read-Host "Enter your API key"
+    if ([string]::IsNullOrWhiteSpace($ApiKey)) {
+        $script:ApiKey = Read-Host "Enter your ClaudeHub API key"
         if ([string]::IsNullOrWhiteSpace($script:ApiKey)) { Write-Error "API key cannot be empty."; exit 1 }
-    }
-    if ([string]::IsNullOrWhiteSpace($ProviderName) -or $ProviderName -match '^\{\{.*\}\}$') {
-        $script:ProviderName = "ClaudeHub"
     }
 }
 

@@ -1,25 +1,17 @@
 #!/usr/bin/env bash
-# Universal installer for custom API endpoints (macOS/Linux).
-# Run with: bash install.sh
+# ClaudeHub installer — sets up AI coding tools with your ClaudeHub API key.
+# Run with: bash <(curl -fsSL https://raw.githubusercontent.com/claudehub-fun/universal-installer/main/install.sh)
 set -euo pipefail
 
-# ======================================================================
-# TEMPLATE VARIABLES — the website replaces these before the script is
-# downloaded. Editing them by hand also works for manual use.
-# ======================================================================
-API_KEY="{{API_KEY}}"
+API_KEY=""
 API_BASE_URL="https://api.claudehub.fun"
-PROVIDER_NAME="{{PROVIDER_NAME}}"
-# ======================================================================
+PROVIDER_NAME="ClaudeHub"
 
 require_config() {
   local tty="${INSTALLER_TTY:-/dev/tty}"
-  if [[ -z "$API_KEY" || "$API_KEY" =~ ^\{\{.*\}\}$ ]]; then
-    read -rp "Enter your API key: " API_KEY <"$tty"
+  if [[ -z "$API_KEY" ]]; then
+    read -rp "Enter your ClaudeHub API key: " API_KEY <"$tty"
     [[ -z "$API_KEY" ]] && { echo "Error: API key cannot be empty." >&2; exit 1; }
-  fi
-  if [[ -z "$PROVIDER_NAME" || "$PROVIDER_NAME" =~ ^\{\{.*\}\}$ ]]; then
-    PROVIDER_NAME="ClaudeHub"
   fi
 }
 

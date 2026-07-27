@@ -1,8 +1,10 @@
-# universal-installer
+# ClaudeHub Installer
 
-Installs and configures AI coding tools (Claude Code, Roo Code, Kilo Code, Cline, Codex CLI, OpenRouter) for a custom API endpoint.
+One-command setup for AI coding tools using your [ClaudeHub](https://claudehub.fun) API key.
 
-## Quick start
+Supports **Claude Code**, **Roo Code**, **Kilo Code**, **Cline**, **Codex CLI**, and **OpenRouter**.
+
+## Install
 
 **macOS / Linux**
 ```bash
@@ -14,9 +16,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/claudehub-fun/universal-inst
 irm https://raw.githubusercontent.com/claudehub-fun/universal-installer/main/install.ps1 | iex
 ```
 
-The script will ask which tool to install, then configure it to use your API key and endpoint automatically.
+The script will ask for your ClaudeHub API key, then let you pick which tool to install and configure it automatically.
 
-> The template variables (`{{API_KEY}}`, `{{API_BASE_URL}}`) at the top of the script are replaced by the website before download. For manual use, edit them by hand.
+## What it does
+
+- Prompts for your API key (once)
+- Asks which tool to install
+- Installs and configures it to use ClaudeHub — no manual setup needed
 
 ## Run tests
 
@@ -29,5 +35,3 @@ bash test_install.sh
 ```powershell
 pwsh -File test_install.ps1
 ```
-
-Tests cover the pure functions (config validation, JSON writing, path helpers) without touching your system or installing anything.

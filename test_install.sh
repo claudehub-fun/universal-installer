@@ -14,7 +14,7 @@ assert_eq() {
 }
 
 # ── load pure functions without executing main ────────────────────────────────
-API_KEY="test-key"; API_BASE_URL="https://api.example.com"; PROVIDER_NAME="TestProvider"
+API_KEY="test-key"
 _script="$(dirname "$0")/install.sh"
 _tmp_src="$(mktemp)"
 grep -v '^main "\$@"' "$_script" > "$_tmp_src"
@@ -47,19 +47,15 @@ case "$(uname -s)" in
 esac
 
 echo "=== require_config ==="
-API_KEY="sk-live-123"; PROVIDER_NAME="P"
+API_KEY="sk-live-123"
 require_config
 assert_eq "valid config passes" "$?" "0"
 
 export INSTALLER_TTY=/dev/null
-API_KEY="{{API_KEY}}"; PROVIDER_NAME="P"
+API_KEY=""
 out=$(require_config 2>&1) && rc=0 || rc=$?
-assert_eq "template API_KEY empty input fails" "$rc" "1"
+assert_eq "empty API_KEY prompts and fails" "$rc" "1"
 unset INSTALLER_TTY
-
-API_KEY="sk-live-123"; PROVIDER_NAME="{{PROVIDER_NAME}}"
-require_config
-assert_eq "template PROVIDER_NAME → ClaudeHub" "$PROVIDER_NAME" "ClaudeHub"
 
 echo "=== set_json_value ==="
 tmp="$(mktemp)"

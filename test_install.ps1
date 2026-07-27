@@ -15,9 +15,8 @@ function Assert-Eq {
 
 # ── load pure functions without running Main ─────────────────────────────────
 $src = Get-Content "$PSScriptRoot\install.ps1" -Raw
-# Strip the final 'Main' call so we can dot-source safely
 $src = $src -replace '(?m)^Main\s*$', ''
-$ApiKey = "test-key"; $ApiBaseUrl = "https://api.example.com"; $ProviderName = "TestProvider"
+$ApiKey = "test-key"
 Invoke-Expression $src
 
 Write-Host "=== Get-Slug ==="
@@ -32,17 +31,13 @@ $expected = Join-Path $env:APPDATA "Code\User\settings.json"
 Assert-Eq "appdata path" (Get-VSCodeUserSettingsPath) $expected
 
 Write-Host "=== Assert-Config ==="
-$script:ApiKey = "sk-live-123"; $script:ProviderName = "P"
+$script:ApiKey = "sk-live-123"
 Assert-Config
 Assert-Eq "valid config passes" $true $true
 
-$script:ApiKey = "{{API_KEY}}"; $script:ProviderName = "P"
-try { Assert-Config; Assert-Eq "template API_KEY fails" $false $true }
-catch { Assert-Eq "template API_KEY fails" $true $true }
-
-$script:ApiKey = "sk-live-123"; $script:ProviderName = "{{PROVIDER_NAME}}"
-Assert-Config
-Assert-Eq "template PROVIDER_NAME → ClaudeHub" $script:ProviderName "ClaudeHub"
+$script:ApiKey = ""
+try { Assert-Config; Assert-Eq "empty API key fails" $false $true }
+catch { Assert-Eq "empty API key fails" $true $true }
 
 Write-Host "=== Set-JsonValue / Read-JsonOrEmpty ==="
 $tmp = [System.IO.Path]::GetTempFileName()
