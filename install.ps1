@@ -25,16 +25,13 @@ function Set-Utf8NoBom {
 }
 
 function Assert-Config {
-    # Match a leftover "{{...}}" marker rather than the literal template
-    # string -- a naive site-side find/replace of "{{API_KEY}}" would also
-    # rewrite the literal inside this check, making it always true/false.
     if ([string]::IsNullOrWhiteSpace($ApiKey) -or $ApiKey -match '^\{\{.*\}\}$') {
-        Write-Error "API key is not set. Edit the TEMPLATE variables at the top of this script."
-        exit 1
+        $script:ApiKey = Read-Host "Enter your API key"
+        if ([string]::IsNullOrWhiteSpace($script:ApiKey)) { Write-Error "API key cannot be empty."; exit 1 }
     }
     if ([string]::IsNullOrWhiteSpace($ApiBaseUrl) -or $ApiBaseUrl -match '^\{\{.*\}\}$') {
-        Write-Error "API base URL is not set. Edit the TEMPLATE variables at the top of this script."
-        exit 1
+        $script:ApiBaseUrl = Read-Host "Enter the API base URL"
+        if ([string]::IsNullOrWhiteSpace($script:ApiBaseUrl)) { Write-Error "API base URL cannot be empty."; exit 1 }
     }
     if ([string]::IsNullOrWhiteSpace($ProviderName) -or $ProviderName -match '^\{\{.*\}\}$') {
         $script:ProviderName = "ClaudeHub"

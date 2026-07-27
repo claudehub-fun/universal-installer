@@ -13,16 +13,13 @@ PROVIDER_NAME="{{PROVIDER_NAME}}"
 # ======================================================================
 
 require_config() {
-  # Match a leftover "{{...}}" marker rather than the literal template
-  # string -- a naive site-side find/replace of "{{API_KEY}}" would also
-  # rewrite the literal inside this check, making it always true/false.
   if [[ -z "$API_KEY" || "$API_KEY" =~ ^\{\{.*\}\}$ ]]; then
-    echo "Error: API_KEY is not set. Edit the TEMPLATE variables at the top of this script." >&2
-    exit 1
+    read -rp "Enter your API key: " API_KEY
+    [[ -z "$API_KEY" ]] && { echo "Error: API key cannot be empty." >&2; exit 1; }
   fi
   if [[ -z "$API_BASE_URL" || "$API_BASE_URL" =~ ^\{\{.*\}\}$ ]]; then
-    echo "Error: API_BASE_URL is not set. Edit the TEMPLATE variables at the top of this script." >&2
-    exit 1
+    read -rp "Enter the API base URL: " API_BASE_URL
+    [[ -z "$API_BASE_URL" ]] && { echo "Error: API base URL cannot be empty." >&2; exit 1; }
   fi
   if [[ -z "$PROVIDER_NAME" || "$PROVIDER_NAME" =~ ^\{\{.*\}\}$ ]]; then
     PROVIDER_NAME="ClaudeHub"
