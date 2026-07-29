@@ -5,6 +5,10 @@ set -euo pipefail
 
 API_KEY=""
 API_BASE_URL="https://api.claudehub.fun"
+# OpenAI-compatible clients append /chat/completions or /responses to the base
+# URL, so they need the /v1 prefix. Anthropic-native tools (Claude Code, Kilo's
+# @ai-sdk/anthropic) build /v1/messages themselves and use $API_BASE_URL as-is.
+OPENAI_BASE_URL="$API_BASE_URL/v1"
 PROVIDER_NAME="ClaudeHub"
 
 require_config() {
@@ -144,7 +148,7 @@ write_roo_style_config() {
     \"apiConfigs\": {
       \"$profile_name\": {
         \"apiProvider\": \"openai\",
-        \"openAiBaseUrl\": \"$API_BASE_URL\",
+        \"openAiBaseUrl\": \"$OPENAI_BASE_URL\",
         \"openAiApiKey\": \"$API_KEY\",
         \"openAiModelId\": \"claude-opus-4-8\"
       }
@@ -256,7 +260,7 @@ install_cline() {
   echo "        2. Open the Cline panel (icon in the sidebar)."
   echo "        3. Click the settings (gear) icon."
   echo "        4. API Provider: choose 'OpenAI Compatible'."
-  echo "        5. Base URL: $API_BASE_URL"
+  echo "        5. Base URL: $OPENAI_BASE_URL"
   echo "        6. API Key: $API_KEY"
   echo "        7. Save."
   echo "  RU: Cline хранит API-ключи в зашифрованном хранилище VS Code, поэтому"
@@ -265,7 +269,7 @@ install_cline() {
   echo "        2. Откройте панель Cline (иконка в боковой панели)."
   echo "        3. Нажмите на значок настроек (шестерёнка)."
   echo "        4. API Provider: выберите 'OpenAI Compatible'."
-  echo "        5. Base URL: $API_BASE_URL"
+  echo "        5. Base URL: $OPENAI_BASE_URL"
   echo "        6. API Key: $API_KEY"
   echo "        7. Сохраните."
 }
@@ -288,7 +292,7 @@ model_provider = "custom"
 
 [model_providers.custom]
 name = "$PROVIDER_NAME"
-base_url = "$API_BASE_URL"
+base_url = "$OPENAI_BASE_URL"
 experimental_bearer_token = "$API_KEY"
 wire_api = "responses"
 EOF
@@ -308,7 +312,7 @@ setup_openrouter() {
   echo "Setting OpenRouter environment variables..."
   append_env_exports \
     "OPENAI_API_KEY=$API_KEY" \
-    "OPENAI_BASE_URL=$API_BASE_URL" \
+    "OPENAI_BASE_URL=$OPENAI_BASE_URL" \
     "OPENROUTER_API_KEY=$API_KEY"
   echo ""
   echo "How to connect / Как подключиться:"

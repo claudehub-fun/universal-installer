@@ -5,6 +5,10 @@ $ErrorActionPreference = "Stop"
 
 $ApiKey = ""
 $ApiBaseUrl = "https://api.claudehub.fun"
+# OpenAI-compatible clients append /chat/completions or /responses to the base
+# URL, so they need the /v1 prefix. Anthropic-native tools (Claude Code, Kilo's
+# @ai-sdk/anthropic) build /v1/messages themselves and use $ApiBaseUrl as-is.
+$OpenAiBaseUrl = "$ApiBaseUrl/v1"
 $ProviderName = "ClaudeHub"
 
 # Writes text as UTF-8 *without* a BOM. PowerShell 5.1's built-in
@@ -146,7 +150,7 @@ function Write-RooStyleConfig {
             apiConfigs = @{
                 $ProfileName = [ordered]@{
                     apiProvider   = "openai"
-                    openAiBaseUrl = $ApiBaseUrl
+                    openAiBaseUrl = $OpenAiBaseUrl
                     openAiApiKey  = $ApiKey
                     openAiModelId = "claude-opus-4-8"
                 }
@@ -219,7 +223,7 @@ function Install-Cline {
     Write-Host "        2. Open the Cline panel (icon in the sidebar)."
     Write-Host "        3. Click the settings (gear) icon."
     Write-Host "        4. API Provider: choose 'OpenAI Compatible'."
-    Write-Host "        5. Base URL: $ApiBaseUrl"
+    Write-Host "        5. Base URL: $OpenAiBaseUrl"
     Write-Host "        6. API Key: $ApiKey"
     Write-Host "        7. Save."
     Write-Host "  RU: Cline хранит API-ключи в зашифрованном хранилище VS Code, поэтому"
@@ -228,7 +232,7 @@ function Install-Cline {
     Write-Host "        2. Откройте панель Cline (иконка в боковой панели)."
     Write-Host "        3. Нажмите на значок настроек (шестерёнка)."
     Write-Host "        4. API Provider: выберите 'OpenAI Compatible'."
-    Write-Host "        5. Base URL: $ApiBaseUrl"
+    Write-Host "        5. Base URL: $OpenAiBaseUrl"
     Write-Host "        6. API Key: $ApiKey"
     Write-Host "        7. Сохраните."
 }
@@ -254,7 +258,7 @@ model_provider = "custom"
 
 [model_providers.custom]
 name = "$ProviderName"
-base_url = "$ApiBaseUrl"
+base_url = "$OpenAiBaseUrl"
 experimental_bearer_token = "$ApiKey"
 wire_api = "responses"
 "@
@@ -274,7 +278,7 @@ wire_api = "responses"
 function Setup-OpenRouter {
     Write-Host "Setting OpenRouter environment variables (User scope)..."
     [Environment]::SetEnvironmentVariable("OPENAI_API_KEY", $ApiKey, "User")
-    [Environment]::SetEnvironmentVariable("OPENAI_BASE_URL", $ApiBaseUrl, "User")
+    [Environment]::SetEnvironmentVariable("OPENAI_BASE_URL", $OpenAiBaseUrl, "User")
     [Environment]::SetEnvironmentVariable("OPENROUTER_API_KEY", $ApiKey, "User")
     Write-Host ""
     Write-Host "How to connect / Как подключиться:"
