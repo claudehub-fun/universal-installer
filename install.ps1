@@ -118,9 +118,54 @@ function Install-VSCodeExtension {
 # ---------------------------------------------------------------------
 # 1) Claude Code
 # ---------------------------------------------------------------------
+# Adds the directory holding claude(.cmd/.exe) to the User PATH so a fresh
+# terminal finds it without manual setup. Idempotent.
+function Ensure-ClaudeOnPath {
+    $cmd = Get-Command claude -ErrorAction SilentlyContinue
+    if ($cmd) {
+        $dir = Split-Path -Parent $cmd.Source
+    } else {
+        # ponytail: known install layouts (npm global, claude.ai native), extend if Anthropic moves them
+        $candidates = @(
+            (Join-Path $env:APPDATA "npm"),
+            (Join-Path $env:USERPROFILE ".local\bin")
+        )
+        $dir = $candidates | Where-Object {
+            (Test-Path (Join-Path $_ "claude.cmd")) -or (Test-Path (Join-Path $_ "claude.exe")) -or (Test-Path (Join-Path $_ "claude"))
+        } | Select-Object -First 1
+    }
+    if (-not $dir) { return }
+
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($null -eq $userPath) { $userPath = "" }
+    $parts = $userPath -split ';' | Where-Object { $_ -ne "" }
+    if ($parts -notcontains $dir) {
+        $newPath = if ($userPath -eq "") { $dir } else { "$userPath;$dir" }
+        [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+        Write-Host "Added '$dir' to your User PATH (open a new terminal to use 'claude')."
+    }
+}
+
 function Install-ClaudeCode {
     Write-Host "Installing Claude Code..."
-    irm https://claude.ai/install.ps1 | iex
+    # Fast path needs a VPN in some regions (claude.ai is blocked). Fall back to
+    # npm (registry.npmjs.org is usually reachable without a VPN).
+    try { irm https://claude.ai/install.ps1 | iex } catch { Write-Host "claude.ai unreachable, trying npm..." }
+
+    if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+        if (Get-Command npm -ErrorAction SilentlyContinue) {
+            npm install -g @anthropic-ai/claude-code
+        }
+    }
+
+    if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+        Write-Host ""
+        Write-Host "EN: Could not install Claude Code. Enable a VPN and retry, or install Node.js (npm) from nodejs.org and re-run." -ForegroundColor Red
+        Write-Host "RU: Не удалось установить Claude Code. Включите VPN и повторите, либо установите Node.js (npm) с nodejs.org и запустите снова." -ForegroundColor Red
+        exit 1
+    }
+
+    Ensure-ClaudeOnPath
 
     $settingsPath = Join-Path $env:USERPROFILE ".claude\settings.json"
     Set-JsonValue -Path $settingsPath -DottedKey "env.ANTHROPIC_BASE_URL" -Value $ApiBaseUrl
@@ -288,6 +333,96 @@ function Setup-OpenRouter {
     Write-Host "      затем используйте их в любом OpenAI-совместимом CLI-инструменте."
 }
 
+# ---------------------------------------------------------------------
+# 7) OpenCode CLI (~/.config/opencode/opencode.json, OpenAI-compatible)
+# ---------------------------------------------------------------------
+function Install-OpenCode {
+    Write-Host "Installing OpenCode..."
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Error "npm not found. Install Node.js (npm) and re-run."; exit 1
+    }
+    npm install -g opencode-ai
+
+    $slug = Get-Slug -Value $ProviderName
+    $model = "claude-opus-4-8"
+    $configPath = Join-Path $env:USERPROFILE ".config\opencode\opencode.json"
+    $providerObj = [ordered]@{
+        npm     = "@ai-sdk/openai-compatible"
+        options = [ordered]@{ baseURL = $OpenAiBaseUrl; apiKey = $ApiKey }
+        models  = @{ $model = [ordered]@{ name = $model } }
+    }
+    Merge-JsonObject -Path $configPath -DottedKey "provider.$slug" -Value $providerObj
+    Set-JsonValue -Path $configPath -DottedKey "model" -Value "$slug/$model"
+
+    Write-Host ""
+    Write-Host "OpenCode installed and configured ($configPath)."
+    Write-Host ""
+    Write-Host "How to connect / Как подключиться:"
+    Write-Host "  EN: Open a new terminal and run 'opencode'. It will use $ProviderName automatically."
+    Write-Host "  RU: Откройте новый терминал и запустите 'opencode'. $ProviderName подключится автоматически."
+}
+
+# ---------------------------------------------------------------------
+# 8) OpenClaw (~/.openclaw/openclaw.json)
+# ---------------------------------------------------------------------
+function Install-OpenClaw {
+    Write-Host "Installing Open Claw..."
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Error "npm not found. Install Node.js (npm) and re-run."; exit 1
+    }
+    npm install -g openclaw
+
+    $slug = Get-Slug -Value $ProviderName
+    $model = "claude-opus-4-8"
+    $configPath = Join-Path $env:USERPROFILE ".openclaw\openclaw.json"
+    # ponytail: minimal provider block, no per-agent models.json — add if needed
+    $providerObj = [ordered]@{
+        baseUrl = $OpenAiBaseUrl
+        apiKey  = $ApiKey
+        models  = @( [ordered]@{ id = $model; name = $model } )
+    }
+    Merge-JsonObject -Path $configPath -DottedKey "models.providers.$slug" -Value $providerObj
+    Set-JsonValue -Path $configPath -DottedKey "agents.defaults.model.primary" -Value "$slug/$model"
+
+    Write-Host ""
+    Write-Host "Open Claw installed and configured ($configPath)."
+    Write-Host ""
+    Write-Host "How to connect / Как подключиться:"
+    Write-Host "  EN: Open a new terminal and run 'openclaw'. It will use $ProviderName automatically."
+    Write-Host "  RU: Откройте новый терминал и запустите 'openclaw'. $ProviderName подключится автоматически."
+}
+
+# ---------------------------------------------------------------------
+# 9) Hermes Agent — unix-only installer (no Windows package)
+# ---------------------------------------------------------------------
+function Install-Hermes {
+    Write-Host "Hermes Agent has no Windows installer."
+    Write-Host ""
+    Write-Host "How to connect / Как подключиться:"
+    Write-Host "  EN: Install on WSL/Linux/macOS, then set in ~/.hermes/config.yaml:"
+    Write-Host "        model.provider: custom, model.base_url: $OpenAiBaseUrl"
+    Write-Host "      and in ~/.hermes/.env: OPENAI_API_KEY=$ApiKey"
+    Write-Host "  RU: Установите на WSL/Linux/macOS, затем в ~/.hermes/config.yaml укажите:"
+    Write-Host "        model.provider: custom, model.base_url: $OpenAiBaseUrl"
+    Write-Host "      и в ~/.hermes/.env: OPENAI_API_KEY=$ApiKey"
+}
+
+# ---------------------------------------------------------------------
+# 10) Cursor — manual setup (MITM-only tool, no scripted config)
+# ---------------------------------------------------------------------
+function Install-Cursor {
+    # ponytail: Cursor only via manual setup, we don't ship the MITM interceptor
+    Write-Host "Cursor is configured manually in the app."
+    Write-Host ""
+    Write-Host "How to connect / Как подключиться:"
+    Write-Host "  EN: 1. Open Cursor. 2. Settings -> Models. 3. Enable 'OpenAI API Key'."
+    Write-Host "      4. Set 'Override Base URL' to: $OpenAiBaseUrl"
+    Write-Host "      5. API Key: $ApiKey  6. Save & verify."
+    Write-Host "  RU: 1. Откройте Cursor. 2. Settings -> Models. 3. Включите 'OpenAI API Key'."
+    Write-Host "      4. В 'Override Base URL' укажите: $OpenAiBaseUrl"
+    Write-Host "      5. API Key: $ApiKey  6. Сохраните и проверьте."
+}
+
 function Main {
     Assert-Config
     Write-Host "Select what to install:"
@@ -297,7 +432,11 @@ function Main {
     Write-Host "  4) Cline"
     Write-Host "  5) Codex CLI"
     Write-Host "  6) OpenRouter (env vars only)"
-    $choice = Read-Host "Enter a number (1-6)"
+    Write-Host "  7) OpenCode"
+    Write-Host "  8) Open Claw"
+    Write-Host "  9) Hermes"
+    Write-Host " 10) Cursor"
+    $choice = Read-Host "Enter a number (1-10)"
 
     switch ($choice) {
         "1" { Install-ClaudeCode }
@@ -306,7 +445,11 @@ function Main {
         "4" { Install-Cline }
         "5" { Install-Codex }
         "6" { Setup-OpenRouter }
-        default { Write-Error "Invalid choice, pick a number 1-6." }
+        "7" { Install-OpenCode }
+        "8" { Install-OpenClaw }
+        "9" { Install-Hermes }
+        "10" { Install-Cursor }
+        default { Write-Error "Invalid choice, pick a number 1-10." }
     }
 }
 

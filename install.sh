@@ -113,9 +113,50 @@ install_vscode_extension() {
 # ---------------------------------------------------------------------
 # 1) Claude Code
 # ---------------------------------------------------------------------
+# Ensures the dir holding the `claude` binary is on PATH via the shell rc file.
+# Idempotent (guarded by a marker comment). ponytail: known layouts, extend if moved.
+ensure_claude_on_path() {
+  command -v claude >/dev/null 2>&1 && return 0  # already on PATH
+  local dir=""
+  if [[ -x "$HOME/.local/bin/claude" ]]; then
+    dir="$HOME/.local/bin"
+  elif command -v npm >/dev/null 2>&1; then
+    local prefix; prefix="$(npm prefix -g 2>/dev/null)"
+    [[ -n "$prefix" && -x "$prefix/bin/claude" ]] && dir="$prefix/bin"
+  fi
+  [[ -z "$dir" ]] && return 0
+
+  local rc; rc="$(shell_rc_file)"
+  local marker="# claude PATH (universal-installer)"
+  grep -qF "$marker" "$rc" 2>/dev/null && return 0
+  {
+    echo ""
+    echo "$marker"
+    echo "export PATH=\"\$PATH:$dir\""
+  } >> "$rc"
+  echo "Added '$dir' to PATH in $rc (open a new terminal to use 'claude')."
+}
+
 install_claude_code() {
   echo "Installing Claude Code..."
-  curl -fsSL https://claude.ai/install.sh | bash
+  # Fast path needs a VPN in some regions (claude.ai is blocked). Fall back to
+  # npm (registry.npmjs.org is usually reachable without a VPN).
+  curl -fsSL https://claude.ai/install.sh | bash || echo "claude.ai unreachable, trying npm..."
+
+  if ! command -v claude >/dev/null 2>&1; then
+    if command -v npm >/dev/null 2>&1; then
+      npm install -g @anthropic-ai/claude-code || true
+    fi
+  fi
+
+  if ! command -v claude >/dev/null 2>&1 && [[ ! -x "$HOME/.local/bin/claude" ]]; then
+    echo "" >&2
+    echo "EN: Could not install Claude Code. Enable a VPN and retry, or install Node.js (npm) from nodejs.org and re-run." >&2
+    echo "RU: Не удалось установить Claude Code. Включите VPN и повторите, либо установите Node.js (npm) с nodejs.org и запустите снова." >&2
+    exit 1
+  fi
+
+  ensure_claude_on_path
 
   local settings="$HOME/.claude/settings.json"
   set_json_value "$settings" "env.ANTHROPIC_BASE_URL" "$API_BASE_URL"
@@ -323,11 +364,110 @@ setup_openrouter() {
   echo "      OpenAI-совместимом CLI-инструменте."
 }
 
+# ---------------------------------------------------------------------
+# 7) OpenCode CLI (~/.config/opencode/opencode.json, OpenAI-compatible)
+# ---------------------------------------------------------------------
+install_opencode() {
+  echo "Installing OpenCode..."
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "Error: npm not found. Install Node.js (npm) and re-run." >&2; exit 1
+  fi
+  npm install -g opencode-ai
+
+  local slug; slug="$(slugify "$PROVIDER_NAME")"
+  local model="claude-opus-4-8"
+  local config_path="$HOME/.config/opencode/opencode.json"
+  local provider_json="{\"npm\":\"@ai-sdk/openai-compatible\",\"options\":{\"baseURL\":\"$OPENAI_BASE_URL\",\"apiKey\":\"$API_KEY\"},\"models\":{\"$model\":{\"name\":\"$model\"}}}"
+  merge_json_object "$config_path" "provider.$slug" "$provider_json"
+  set_json_value "$config_path" "model" "$slug/$model"
+
+  echo ""
+  echo "OpenCode installed and configured ($config_path)."
+  echo ""
+  echo "How to connect / Как подключиться:"
+  echo "  EN: Open a new terminal and run 'opencode'. It will use $PROVIDER_NAME automatically."
+  echo "  RU: Откройте новый терминал и запустите 'opencode'. $PROVIDER_NAME подключится автоматически."
+}
+
+# ---------------------------------------------------------------------
+# 8) Open Claw (~/.openclaw/openclaw.json)
+# ---------------------------------------------------------------------
+install_openclaw() {
+  echo "Installing Open Claw..."
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "Error: npm not found. Install Node.js (npm) and re-run." >&2; exit 1
+  fi
+  npm install -g openclaw
+
+  local slug; slug="$(slugify "$PROVIDER_NAME")"
+  local model="claude-opus-4-8"
+  local config_path="$HOME/.openclaw/openclaw.json"
+  # ponytail: minimal provider block, no per-agent models.json — add if needed
+  local provider_json="{\"baseUrl\":\"$OPENAI_BASE_URL\",\"apiKey\":\"$API_KEY\",\"models\":[{\"id\":\"$model\",\"name\":\"$model\"}]}"
+  merge_json_object "$config_path" "models.providers.$slug" "$provider_json"
+  set_json_value "$config_path" "agents.defaults.model.primary" "$slug/$model"
+
+  echo ""
+  echo "Open Claw installed and configured ($config_path)."
+  echo ""
+  echo "How to connect / Как подключиться:"
+  echo "  EN: Open a new terminal and run 'openclaw'. It will use $PROVIDER_NAME automatically."
+  echo "  RU: Откройте новый терминал и запустите 'openclaw'. $PROVIDER_NAME подключится автоматически."
+}
+
+# ---------------------------------------------------------------------
+# 9) Hermes Agent (~/.hermes/config.yaml + ~/.hermes/.env)
+# ---------------------------------------------------------------------
+install_hermes() {
+  echo "Installing Hermes Agent..."
+  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+
+  local dir="$HOME/.hermes"
+  mkdir -p "$dir"
+  # config.yaml: overwrite the model: block, keep the rest is out of scope here —
+  # ponytail: fresh minimal config, tune other keys by hand if you already had them
+  cat > "$dir/config.yaml" <<EOF
+model:
+  default: "claude-opus-4-8"
+  provider: "custom"
+  base_url: "$OPENAI_BASE_URL"
+EOF
+  # .env: upsert OPENAI_API_KEY without clobbering other vars
+  if [[ -f "$dir/.env" ]] && grep -q '^OPENAI_API_KEY=' "$dir/.env"; then
+    sed -i.bak "s|^OPENAI_API_KEY=.*|OPENAI_API_KEY=$API_KEY|" "$dir/.env" && rm -f "$dir/.env.bak"
+  else
+    echo "OPENAI_API_KEY=$API_KEY" >> "$dir/.env"
+  fi
+
+  echo ""
+  echo "Hermes installed and configured ($dir/config.yaml)."
+  echo ""
+  echo "How to connect / Как подключиться:"
+  echo "  EN: Open a new terminal and run 'hermes'. It will use $PROVIDER_NAME automatically."
+  echo "  RU: Откройте новый терминал и запустите 'hermes'. $PROVIDER_NAME подключится автоматически."
+}
+
+# ---------------------------------------------------------------------
+# 10) Cursor — manual setup (MITM-only tool, no scripted config)
+# ---------------------------------------------------------------------
+install_cursor() {
+  # ponytail: Cursor only via manual setup, we don't ship the MITM interceptor
+  echo "Cursor is configured manually in the app."
+  echo ""
+  echo "How to connect / Как подключиться:"
+  echo "  EN: 1. Open Cursor. 2. Settings -> Models. 3. Enable 'OpenAI API Key'."
+  echo "      4. Set 'Override Base URL' to: $OPENAI_BASE_URL"
+  echo "      5. API Key: $API_KEY  6. Save & verify."
+  echo "  RU: 1. Откройте Cursor. 2. Settings -> Models. 3. Включите 'OpenAI API Key'."
+  echo "      4. В 'Override Base URL' укажите: $OPENAI_BASE_URL"
+  echo "      5. API Key: $API_KEY  6. Сохраните и проверьте."
+}
+
 main() {
   require_config
   local tty="${INSTALLER_TTY:-/dev/tty}"
   echo "Select what to install:"
-  select choice in "Claude Code" "Roo Code" "Kilo Code" "Cline" "Codex CLI" "OpenRouter (env vars only)"; do
+  select choice in "Claude Code" "Roo Code" "Kilo Code" "Cline" "Codex CLI" "OpenRouter (env vars only)" "OpenCode" "Open Claw" "Hermes" "Cursor"; do
     case "$choice" in
       "Claude Code") install_claude_code; break ;;
       "Roo Code") install_roo_code; break ;;
@@ -335,7 +475,11 @@ main() {
       "Cline") install_cline; break ;;
       "Codex CLI") install_codex; break ;;
       "OpenRouter (env vars only)") setup_openrouter; break ;;
-      *) echo "Invalid choice, pick a number 1-6." ;;
+      "OpenCode") install_opencode; break ;;
+      "Open Claw") install_openclaw; break ;;
+      "Hermes") install_hermes; break ;;
+      "Cursor") install_cursor; break ;;
+      *) echo "Invalid choice, pick a number 1-10." ;;
     esac
   done <"$tty"
 }

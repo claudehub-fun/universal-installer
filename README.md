@@ -2,7 +2,7 @@
 
 One-command setup for AI coding tools using your [ClaudeHub](https://claudehub.fun) API key.
 
-Supports **Claude Code**, **Roo Code**, **Kilo Code**, **Cline**, **Codex CLI**, and **OpenRouter**.
+Supports **Claude Code**, **Roo Code**, **Kilo Code**, **Cline**, **Codex CLI**, **OpenRouter**, **OpenCode**, **Open Claw**, **Hermes**, and **Cursor**.
 
 ## Install
 
