@@ -423,6 +423,41 @@ function Install-Cursor {
     Write-Host "      5. API Key: $ApiKey  6. Сохраните и проверьте."
 }
 
+# ---------------------------------------------------------------------
+# 11) ChatGPT Desktop — uses same config.toml as Codex CLI
+# ---------------------------------------------------------------------
+function Install-ChatGPTDesktop {
+    Write-Host "Installing ChatGPT Desktop (Codex GUI)..."
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Error "npm not found. Install Node.js (npm) and re-run."
+        exit 1
+    }
+    npm install -g @openai/codex
+
+    $codexHome = $env:CODEX_HOME
+    if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome = Join-Path $env:USERPROFILE ".codex" }
+    if (-not (Test-Path $codexHome)) { New-Item -ItemType Directory -Path $codexHome -Force | Out-Null }
+
+    $configPath = Join-Path $codexHome "config.toml"
+    $toml = @"
+model_provider = "custom"
+
+[model_providers.custom]
+name = "$ProviderName"
+base_url = "$OpenAiBaseUrl"
+experimental_bearer_token = "$ApiKey"
+wire_api = "responses"
+"@
+    Set-Utf8NoBom -Path $configPath -Content $toml
+
+    Write-Host ""
+    Write-Host "ChatGPT Desktop configured ($configPath)."
+    Write-Host ""
+    Write-Host "How to connect / Как подключиться:"
+    Write-Host "  EN: Open ChatGPT Desktop app. It will use $ProviderName automatically."
+    Write-Host "  RU: Откройте приложение ChatGPT Desktop. $ProviderName подключится автоматически."
+}
+
 function Main {
     Assert-Config
     Write-Host "Select what to install:"
@@ -436,7 +471,8 @@ function Main {
     Write-Host "  8) Open Claw"
     Write-Host "  9) Hermes"
     Write-Host " 10) Cursor"
-    $choice = Read-Host "Enter a number (1-10)"
+    Write-Host " 11) ChatGPT Desktop"
+    $choice = Read-Host "Enter a number (1-11)"
 
     switch ($choice) {
         "1" { Install-ClaudeCode }
@@ -449,7 +485,8 @@ function Main {
         "8" { Install-OpenClaw }
         "9" { Install-Hermes }
         "10" { Install-Cursor }
-        default { Write-Error "Invalid choice, pick a number 1-10." }
+        "11" { Install-ChatGPTDesktop }
+        default { Write-Error "Invalid choice, pick a number 1-11." }
     }
 }
 

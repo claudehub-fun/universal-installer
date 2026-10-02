@@ -463,11 +463,42 @@ install_cursor() {
   echo "      5. API Key: $API_KEY  6. Сохраните и проверьте."
 }
 
+# ---------------------------------------------------------------------
+# 11) ChatGPT Desktop — uses same config.toml as Codex CLI
+# ---------------------------------------------------------------------
+install_chatgpt_desktop() {
+  echo "Installing ChatGPT Desktop (Codex GUI)..."
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "Error: npm not found. Install Node.js (npm) and re-run." >&2
+    exit 1
+  fi
+  npm install -g @openai/codex
+
+  local codex_home="${CODEX_HOME:-$HOME/.codex}"
+  mkdir -p "$codex_home"
+  cat > "$codex_home/config.toml" <<EOF
+model_provider = "custom"
+
+[model_providers.custom]
+name = "$PROVIDER_NAME"
+base_url = "$OPENAI_BASE_URL"
+experimental_bearer_token = "$API_KEY"
+wire_api = "responses"
+EOF
+
+  echo ""
+  echo "ChatGPT Desktop configured ($codex_home/config.toml)."
+  echo ""
+  echo "How to connect / Как подключиться:"
+  echo "  EN: Open ChatGPT Desktop app. It will use $PROVIDER_NAME automatically."
+  echo "  RU: Откройте приложение ChatGPT Desktop. $PROVIDER_NAME подключится автоматически."
+}
+
 main() {
   require_config
   local tty="${INSTALLER_TTY:-/dev/tty}"
   echo "Select what to install:"
-  select choice in "Claude Code" "Roo Code" "Kilo Code" "Cline" "Codex CLI" "OpenRouter (env vars only)" "OpenCode" "Open Claw" "Hermes" "Cursor"; do
+  select choice in "Claude Code" "Roo Code" "Kilo Code" "Cline" "Codex CLI" "OpenRouter (env vars only)" "OpenCode" "Open Claw" "Hermes" "Cursor" "ChatGPT Desktop"; do
     case "$choice" in
       "Claude Code") install_claude_code; break ;;
       "Roo Code") install_roo_code; break ;;
@@ -479,7 +510,8 @@ main() {
       "Open Claw") install_openclaw; break ;;
       "Hermes") install_hermes; break ;;
       "Cursor") install_cursor; break ;;
-      *) echo "Invalid choice, pick a number 1-10." ;;
+      "ChatGPT Desktop") install_chatgpt_desktop; break ;;
+      *) echo "Invalid choice, pick a number 1-11." ;;
     esac
   done <"$tty"
 }
