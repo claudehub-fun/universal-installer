@@ -318,6 +318,24 @@ install_cline() {
 # ---------------------------------------------------------------------
 # 5) OpenAI Codex CLI
 # ---------------------------------------------------------------------
+# Codex only indexes git repos and searches with ripgrep; without either it
+# returns an empty answer. We check, we don't install the OS package here.
+codex_checklist() {
+  if ! command -v rg >/dev/null 2>&1; then
+    echo "" >&2
+    echo "EN: ripgrep ('rg') not found - Codex needs it to search files. Install it (brew install ripgrep / apt install ripgrep)." >&2
+    echo "RU: ripgrep ('rg') не найден — Codexу нужен для поиска файлов. Установите (brew install ripgrep / apt install ripgrep)." >&2
+  fi
+  echo ""
+  echo "If Codex shows an empty answer / Если Codex отвечает пусто:"
+  echo "  1. EN: 'rg --version' must work, and the project folder must be a git repo (git init, git add ., git commit -m init)."
+  echo "     RU: 'rg --version' должен работать, а папка проекта должна быть git-репозиторием (git init, git add ., git commit -m init)."
+  echo "  2. EN: open a new chat INSIDE the project in the sidebar, not a global chat."
+  echo "     RU: открывайте новый чат ВНУТРИ проекта в боковой панели, а не глобальный."
+  echo ""
+  echo "  Details: https://claudehub.fun/docs/getting-started/tools/codex"
+}
+
 install_codex() {
   echo "Installing Codex CLI..."
   if ! command -v npm >/dev/null 2>&1; then
@@ -344,6 +362,7 @@ EOF
   echo "How to connect / Как подключиться:"
   echo "  EN: Open a new terminal and run 'codex'. It will use $PROVIDER_NAME automatically."
   echo "  RU: Откройте новый терминал и запустите 'codex'. $PROVIDER_NAME подключится автоматически."
+  codex_checklist
 }
 
 # ---------------------------------------------------------------------
@@ -492,6 +511,7 @@ EOF
   echo "How to connect / Как подключиться:"
   echo "  EN: Open ChatGPT Desktop app. It will use $PROVIDER_NAME automatically."
   echo "  RU: Откройте приложение ChatGPT Desktop. $PROVIDER_NAME подключится автоматически."
+  codex_checklist
 }
 
 main() {

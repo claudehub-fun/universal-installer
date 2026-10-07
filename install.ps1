@@ -285,6 +285,35 @@ function Install-Cline {
 # ---------------------------------------------------------------------
 # 5) OpenAI Codex CLI
 # ---------------------------------------------------------------------
+# Codex searches the workspace with ripgrep; without rg.exe on PATH it lists
+# no files and answers come back empty. winget is the only install path we
+# can script here. ponytail: no manual PATH surgery, we just tell the user.
+function Ensure-Ripgrep {
+    if (Get-Command rg -ErrorAction SilentlyContinue) { return }
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Write-Host "  EN: ripgrep is missing and winget isn't available. Install ripgrep manually, Codex needs it to see your files." -ForegroundColor Yellow
+        Write-Host "  RU: ripgrep не установлен, а winget недоступен. Поставьте ripgrep вручную — без него Codex не видит файлы." -ForegroundColor Yellow
+        return
+    }
+    Write-Host "Installing ripgrep (Codex needs it to search your project)..."
+    winget install --id BurntSushi.ripgrep.MSVC --accept-source-agreements --accept-package-agreements
+}
+
+# Printed after both Codex entry points: the three things that make Codex
+# actually see a project (rg, a git repo, a chat bound to the folder).
+function Write-CodexChecklist {
+    Write-Host ""
+    Write-Host "If Codex shows an empty answer / Если Codex отвечает пусто:"
+    Write-Host "  1. EN: ripgrep must be on PATH -- check with 'rg --version', then fully restart Codex (close it from the tray)."
+    Write-Host "     RU: ripgrep должен быть в PATH -- проверьте 'rg --version', затем полностью перезапустите Codex (закройте через трей)."
+    Write-Host "  2. EN: the project folder must be a git repo -- run 'git init', 'git add .', 'git commit -m init' inside it."
+    Write-Host "     RU: папка проекта должна быть git-репозиторием -- выполните в ней 'git init', 'git add .', 'git commit -m init'."
+    Write-Host "  3. EN: open a new chat INSIDE the project in the sidebar, not a global chat. The chat header must show the project path."
+    Write-Host "     RU: открывайте новый чат ВНУТРИ проекта в боковой панели, а не глобальный. В заголовке чата должен быть путь к проекту."
+    Write-Host ""
+    Write-Host "  Details: https://claudehub.fun/docs/getting-started/tools/codex"
+}
+
 function Install-Codex {
     Write-Host "Installing Codex CLI..."
     if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
@@ -292,6 +321,7 @@ function Install-Codex {
         exit 1
     }
     npm install -g @openai/codex
+    Ensure-Ripgrep
 
     $codexHome = $env:CODEX_HOME
     if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome = Join-Path $env:USERPROFILE ".codex" }
@@ -315,6 +345,7 @@ wire_api = "responses"
     Write-Host "How to connect / Как подключиться:"
     Write-Host "  EN: Open a new terminal and run 'codex'. It will use $ProviderName automatically."
     Write-Host "  RU: Откройте новый терминал и запустите 'codex'. $ProviderName подключится автоматически."
+    Write-CodexChecklist
 }
 
 # ---------------------------------------------------------------------
@@ -433,6 +464,7 @@ function Install-ChatGPTDesktop {
         exit 1
     }
     npm install -g @openai/codex
+    Ensure-Ripgrep
 
     $codexHome = $env:CODEX_HOME
     if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome = Join-Path $env:USERPROFILE ".codex" }
@@ -456,6 +488,7 @@ wire_api = "responses"
     Write-Host "How to connect / Как подключиться:"
     Write-Host "  EN: Open ChatGPT Desktop app. It will use $ProviderName automatically."
     Write-Host "  RU: Откройте приложение ChatGPT Desktop. $ProviderName подключится автоматически."
+    Write-CodexChecklist
 }
 
 function Main {
